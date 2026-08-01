@@ -183,13 +183,10 @@ t_contexto* deserializar_contexto(void* buffer,int tamanio_buffer,t_log* logger)
         log_error(logger, "# ERROR: No se puede deserializar: buffer NULL.");
         return NULL;
     }
-    if (tamanio_buffer < (int)(
-        sizeof(t_registros) +
-        sizeof(int) +
-        sizeof(bool))) {
-        log_error(logger,"## ERROR: Buffer demasiado pequeño: %d bytes.",tamanio_buffer);
-        return NULL;
-        }
+    //if (tamanio_buffer < 3) {
+       //// log_error(logger,"## ERROR: Buffer demasiado pequeño: %d bytes.",tamanio_buffer);
+      //  return NULL;
+      //  }
     uint32_t desplazamiento = 0;
 
     t_contexto* contexto = calloc(1, sizeof(t_contexto));
