@@ -110,7 +110,7 @@ int execute(operacion codigo, char* instruccion, t_registros* registros, int fd_
             break;
         // CP3:
         case OP_MUTEX_CREATE:
-            int comprobacion_m_create = syscall_mutex_create(instruccion, fd_ks, pid, registros); 
+            int comprobacion_m_create = syscall_mutex_create(instruccion, fd_ks, fd_km, contexto, pid, registros, logger_cpu); 
             if (comprobacion_m_create == -1){
                 log_error(logger_cpu, "ERROR - MUTEX_CREATE devolvio -1");
                 exit(EXIT_FAILURE);
@@ -474,6 +474,7 @@ void* lectura_ms(uint32_t direccion_global,uint32_t tamanio_lectura,t_mapa_memor
 
     if (buffer_resultado == NULL) {
         log_error(logger_cpu,"Error de LECTURA");
+        free(buffer_resultado);
         return NULL;
     }
 
@@ -564,6 +565,7 @@ void escritura_ms(uint32_t direccion_global,void* buffer_origen,uint32_t tamanio
         int fd_actual = obtener_fd_ms((uint32_t)indice_ms,fd_ms,fd_ms_agregados);
         if (fd_actual < 0){
             log_error(logger_cpu,"Error de dato en ESCRITURA");
+            free(buffer);
             exit(EXIT_FAILURE);
         }
         uint32_t direccion_local = direccion_actual - ms_actual->base_global;
@@ -587,6 +589,7 @@ void escritura_ms(uint32_t direccion_global,void* buffer_origen,uint32_t tamanio
 
         op_code* respuesta = recibir_mensaje(fd_actual,&tamanio_respuesta);
         if (respuesta == NULL){
+            free(respuesta);
             log_error(logger_cpu,"MEMORIA CORRUPTA");
         }
         if (tamanio_respuesta != sizeof(op_code) ||*respuesta != MSG_DONE) {
@@ -613,6 +616,7 @@ void guardar_contexto_km(int fd_km, t_contexto* contexto, uint32_t pid, t_log* l
     void* buffer = serializar_contexto(contexto, &size, logger_cpu);
     if (buffer == NULL) {
         log_error(logger_cpu, "Error al serializar contexto");
+        free(buffer);
         exit(EXIT_FAILURE);
     }
 
@@ -621,11 +625,13 @@ void guardar_contexto_km(int fd_km, t_contexto* contexto, uint32_t pid, t_log* l
 
     op_code* ok = recibir_mensaje(fd_km, &size);
     if (ok == NULL) {
+        free(ok);
         log_error(logger_cpu, "Error al recibir respuesta");
         exit(EXIT_FAILURE);
     }
     if (*ok != MSG_OK) {
         log_error(logger_cpu, "No se recibio respuesta esperada. %d", *ok);
+        free(ok);
         exit(EXIT_FAILURE);
     }
     free(ok);
@@ -773,6 +779,7 @@ int hay_mensaje_completo(int fd, t_log* logger_cpu){
 
     if (buffer == NULL){
         log_error(logger_cpu, "buffer null");
+        free(buffer);
         return -1;}
 
     bytes = recv(fd,buffer,tamanio_total,MSG_PEEK | MSG_DONTWAIT);
@@ -814,6 +821,7 @@ int atender_interrupcion(int fd_ks, int fd_km, t_contexto* contexto,uint32_t pid
 
     if (codigo == NULL) {
         log_error(logger_cpu,"No se pudo recibir el código de interrupción");
+        free(codigo);
         return -1;
     }
 
