@@ -492,17 +492,59 @@ int syscall_mutex_create(char* instruccion, int fd_ks, uint32_t pid, t_registros
     enviar_mensaje(fd_ks, nombre, strlen(nombre) + 1);
     enviar_mensaje(fd_ks, &pid, sizeof(uint32_t));
 
-    int size; 
-    op_code* ok = recibir_mensaje(fd_ks, &size);
-    if (ok == NULL)
-        return -1;
-    if (*ok != MSG_OK) {
-        free(ok);
+    while (1) {
+        int size = 0;
+        op_code* respuesta = recibir_mensaje(fd_ks, &size);
+
+        if (respuesta == NULL) {
+            log_error(logger_cpu,"MUTEX_CREATE devolvió NULL para el PID %u",pid);
+            return -1;
+        }
+
+        if (*respuesta == MSG_INTERRUPT) {
+            free(respuesta);
+
+            int size_interrupcion = 0;
+            t_interrupcion* nueva_interrupcion = recibir_mensaje(fd_ks, &size_interrupcion);
+            if (nueva_interrupcion == NULL) {
+                log_error(logger_cpu,"Se recibió MSG_INTERRUPT pero no llegó t_interrupcion");
+                return -1;
+            }
+            if (size_interrupcion != sizeof(t_interrupcion)) {
+                log_error(logger_cpu,"Tamaño inválido para t_interrupcion. ""Recibido: %d - Esperado: %zu",size_interrupcion,sizeof(t_interrupcion));
+                free(nueva_interrupcion);
+                return -1;
+            }
+
+            interrupcion_entrante = nueva_interrupcion;
+            interrupcion_en_espera = true;
+
+            log_warning(logger_cpu,"===== INTERRUPCIÓN RECIBIDA DURANTE MUTEX_CREATE =====");
+            log_warning(logger_cpu,"PID de la interrupción: %u",interrupcion_entrante->pid);
+            log_warning(logger_cpu,"Motivo de la interrupción: %d",interrupcion_entrante->motivo);
+            log_warning(logger_cpu,"===================================================");
+            continue;
+        }
+
+        if (*respuesta == MSG_OK) {
+            free(respuesta);
+            registros->pc++;
+            log_debug(logger_cpu,"## PID: %u - MUTEX_LOCK %s ejecutado correctamente",pid,nombre);
+            return 0;
+        }
+
+        if (*respuesta == MSG_BLOQUEADO) {
+            free(respuesta);
+            registros->pc++;
+            log_debug(logger_cpu,"## PID: %u - Bloqueado por MUTEX_LOCK %s. ""Se libera la CPU",pid,nombre);
+            guardar_contexto_km(fd_km,contexto,pid,logger_cpu);
+            return 2;
+        }
+
+        log_error(logger_cpu,"MUTEX_CREATE recibió una respuesta inesperada: %d",*respuesta);
+        free(respuesta);
         return -1;
     }
-    free(ok);
-    registros->pc++;
-    return 0;
 }
 
 // MUTEX_LOCK
