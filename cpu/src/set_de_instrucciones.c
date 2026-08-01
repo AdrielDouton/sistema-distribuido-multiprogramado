@@ -483,7 +483,7 @@ void syscall_exit(int fd_km, int fd_ks, t_contexto* contexto, uint32_t pid, t_lo
 }
 
 // MUTEX_CREATE
-int syscall_mutex_create(char* instruccion, int fd_ks, int fd_km,t_log* contexto, uint32_t pid, t_registros* registros, t_log* logger_cpu) {
+int syscall_mutex_create(char* instruccion, int fd_ks, int fd_km, t_contexto* contexto, uint32_t pid, t_registros* registros, t_log* logger_cpu) {
     char nombre[64];
     sscanf(instruccion, "MUTEX_CREATE %s", nombre);
 

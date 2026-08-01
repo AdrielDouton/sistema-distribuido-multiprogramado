@@ -12,6 +12,8 @@
 #include "../handlers/handler_cpu.h"
 #include "../handlers/handler_swap.h"
 #include "../../utils/src/utils/tipos.h"
+#include "../../utils/src/utils/mensajes.h"
+#include "../../utils/src/utils/conexiones.h"
 #include "memory_manager.h"
 
 #include "process_manager.h"
@@ -408,23 +410,12 @@ bool inicializar_proceso(uint32_t pid, int fd_cpu) {
   t_proceso_memoria* proceso = dictionary_get(administrador.procesos_por_pid, key);
 
   // Validaciones del proceso creado
-  if (proceso == NULL) {
-    log_error(
-        logger,
-        "No se encontró el proceso con PID %u",
-        pid
-    );
+  if (proceso == NULL || proceso->contexto == NULL) {
+    log_error(logger, "## ERROR: No se encontró el proceso con PID %u o no tiene contexto", pid);
+    op_code err = MSG_ERROR;
+    enviar_mensaje(fd_cpu, &err, sizeof(op_code));
     free(key);
     return false;
-  }
-  if (proceso->contexto == NULL) {
-      log_error(
-          logger,
-          "El proceso con PID %u no tiene contexto",
-          pid
-      );
-      free(key);
-      return false;
   }
 
   log_info(logger, "Se va a enviar contexto a CPU en FD %d", fd_cpu);

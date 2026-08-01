@@ -196,13 +196,36 @@ int main(int argc, char* argv[]) {
         // Recibe contexto de ejecucion
         int size;
         void* buffer = recibir_mensaje(fd_km, &size);
-            if (buffer == NULL) {
-                log_info(logger_cpu, "Buffer invalido al intetnar recibir el contexto");
+
+        // Si llegó una actualización asíncrona del mapa de MS (4 bytes con MSG_ACTUALIZAR_MEMORY_STICKS)
+        while (buffer != NULL && size == sizeof(op_code) && *(op_code*)buffer == MSG_ACTUALIZAR_MEMORY_STICKS) {
+            log_info(logger_cpu, "Recibida actualización asíncrona del mapa de MS desde Kernel Memory");
+            free(buffer);
+            int size_mapa = 0;
+            void* buffer_mapa = recibir_mensaje(fd_km, &size_mapa);
+            if (buffer_mapa != NULL) {
+                free(buffer_mapa);
+            }
+            buffer = recibir_mensaje(fd_km, &size);
+        }
+        if (buffer == NULL) {
+            log_error(logger_cpu, "Buffer inválido al intentar recibir el contexto de ejecucion de PID %u", pid);
+            exit(EXIT_FAILURE);
+        }
+
+        if (size == sizeof(op_code)) {
+            op_code* err = (op_code*)buffer;
+            if (*err == MSG_ERROR) {
+                log_error(logger_cpu, "Kernel Memory devolvió MSG_ERROR para PID %u (el proceso no existe o falló al abrir el script de instrucciones)", pid);
+                free(buffer);
                 exit(EXIT_FAILURE);
             }
+        }
 
-        t_contexto* contexto = deserializar_contexto(buffer,size,logger_cpu);
-        if (contexto == NULL) {log_error(logger_cpu, "Error al recibir contexto");
+        t_contexto* contexto = deserializar_contexto(buffer, size, logger_cpu);
+        if (contexto == NULL) {
+            log_error(logger_cpu, "Error al deserializar contexto recibido de KM (tamaño buffer: %d bytes)", size);
+            free(buffer);
             exit(EXIT_FAILURE);
         }
         free(buffer);
