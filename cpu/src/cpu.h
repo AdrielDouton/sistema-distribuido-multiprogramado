@@ -77,6 +77,7 @@ extern bool interrupcion_en_espera;
 
 // MANEJO DE INFORMACION
 t_mapa_memory_sticks_cpu* recibir_mapa(int fd_km, t_log* logger_cpu);
+t_mapa_memory_sticks_cpu* deserializar_mapa_memory_sticks(void* buffer, int tamanio_buffer, t_log* logger_cpu);
 void destruir_mapa_memory_sticks(t_mapa_memory_sticks_cpu* mapa);
 int conectar_memory_sticks_faltantes(t_mapa_memory_sticks_cpu* mapa,t_log* logger_cpu, int identificador_cpu);
 int actualizar_conexiones_ms(t_info_memory_stick_cpu* info_ms,t_log* logger_cpu, int identificador_cpu);

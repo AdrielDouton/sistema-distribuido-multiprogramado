@@ -229,16 +229,25 @@ t_mapa_memory_sticks_cpu* recibir_mapa(int fd_km, t_log* logger_cpu) {
         return NULL;
     }
 
+    t_mapa_memory_sticks_cpu* mapa = deserializar_mapa_memory_sticks(buffer, tamanio_buffer, logger_cpu);
+    free(buffer);
+    return mapa;
+}
+
+t_mapa_memory_sticks_cpu* deserializar_mapa_memory_sticks(void* buffer, int tamanio_buffer, t_log* logger_cpu) {
+    if (buffer == NULL) {
+        return NULL;
+    }
+
     if (tamanio_buffer < (int)sizeof(uint32_t)) {
         log_error(logger_cpu, "Buffer del mapa demasiado pequeño: %d bytes", tamanio_buffer);
-        free(buffer);
         return NULL;
     }
 
     t_mapa_memory_sticks_cpu* mapa = calloc(1, sizeof(t_mapa_memory_sticks_cpu));
 
-    if (mapa == NULL) {log_error(logger_cpu,"No se pudo reservar memoria para el mapa");
-        free(buffer);
+    if (mapa == NULL) {
+        log_error(logger_cpu,"No se pudo reservar memoria para el mapa");
         return NULL;
     }
 
@@ -376,7 +385,6 @@ t_mapa_memory_sticks_cpu* recibir_mapa(int fd_km, t_log* logger_cpu) {
         );
     }
     
-    free(buffer);
     return mapa;
 }
 

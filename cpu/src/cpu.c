@@ -204,6 +204,11 @@ int main(int argc, char* argv[]) {
             int size_mapa = 0;
             void* buffer_mapa = recibir_mensaje(fd_km, &size_mapa);
             if (buffer_mapa != NULL) {
+                t_mapa_memory_sticks_cpu* mapa_async = deserializar_mapa_memory_sticks(buffer_mapa, size_mapa, logger_cpu);
+                if (mapa_async != NULL) {
+                    conectar_memory_sticks_faltantes(mapa_async, logger_cpu, id);
+                    destruir_mapa_memory_sticks(mapa_async);
+                }
                 free(buffer_mapa);
             }
             buffer = recibir_mensaje(fd_km, &size);
